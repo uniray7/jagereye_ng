@@ -3,6 +3,10 @@ services:
     api:
         version: "0.0.1"
         network_mode: host
+        volumes:
+            - type: bind
+              source: /var/log
+              target: /var/jagerlog
         ports:
             client: "5000"
         base_url: "api/v1"
@@ -56,3 +60,14 @@ apps:
     intrusion_detection:
         version: "0.0.1"
         network_mode: host
+logging:
+    loglevel: "debug"
+    transports:
+        stdout:
+            default_enabled: true
+        syslog:
+            default_enabled: true
+            host: &syslog_server_host "localhost"
+            port: &syslog_server_port 514
+            facility: 'local1'
+            protocol: 'udp4'

@@ -7,6 +7,7 @@ const config = require('./config')
 const { users, createAdminUser } = require('./users')
 const analyzers = require('./analyzers')
 const events = require('./events')
+const logging = require('./logging')
 const helpers = require('./helpers')
 
 const app = express()
@@ -21,6 +22,7 @@ const API_ENTRY = `/${config.services.api.base_url}`
 app.use(API_ENTRY, users)
 app.use(API_ENTRY, analyzers)
 app.use(API_ENTRY, events)
+app.use(API_ENTRY, logging)
 app.use(API_ENTRY, helpers)
 
 // Logging errors
