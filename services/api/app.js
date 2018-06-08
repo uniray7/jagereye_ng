@@ -7,9 +7,9 @@ const config = require('./config')
 const { users, createAdminUser } = require('./users')
 const analyzers = require('./analyzers')
 const events = require('./events')
-const logging = require('./logging')
+const { loggingRouter, setupLogger } = require('./logging.js')
 const helpers = require('./helpers')
-
+const logger = require('./logger');
 const app = express()
 
 app.use(cors({ optionsSuccessStatus: 200 /* some legacy browsers (IE11, various SmartTVs) choke on 204 */ }))
@@ -22,7 +22,7 @@ const API_ENTRY = `/${config.services.api.base_url}`
 app.use(API_ENTRY, users)
 app.use(API_ENTRY, analyzers)
 app.use(API_ENTRY, events)
-app.use(API_ENTRY, logging)
+app.use(API_ENTRY, loggingRouter)
 app.use(API_ENTRY, helpers)
 
 // Logging errors
@@ -42,5 +42,9 @@ app.use((err, req, res, next) => {
 
 // Create admin user if it is not existed
 createAdminUser()
+
+// Set up logger
+setupLogger()
+
 
 module.exports = app

@@ -11,6 +11,12 @@ services:
         {%- endif %}
         image: "jagereye/api:{{services.api.version}}"
         network_mode: "{{services.api.network_mode}}"
+        volumes:
+            {%- for volume in services.api.volumes %}
+            - type: "{{volume.type}}"
+              source: "{{volume.source}}"
+              target: "{{volume.target}}"
+            {%- endfor %}
         ports:
             {%- for _, port in services.api.ports.items() %}
             - "{{port}}"

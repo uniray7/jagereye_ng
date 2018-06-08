@@ -61,7 +61,6 @@ apps:
         version: "0.0.1"
         network_mode: host
 logging:
-    loglevel: "debug"
     transports:
         stdout:
             default_enabled: true

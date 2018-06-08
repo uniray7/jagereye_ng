@@ -8,6 +8,9 @@ const unlink = P.promisify(require('fs').unlink);
 const format = require('util').format;
 const logger = require('./logger');
 
+const models = require('./database');
+const sysModel = P.promisifyAll(models['system']);
+
 const { createError } = require('./utils')
 const { routesWithAuth } = require('./auth')
 
@@ -22,34 +25,6 @@ class PackLogsError extends Error {
     }
 };
 
-const ajv = new Ajv();
-const patchSchema = {
-    type: 'object',
-    properties: {
-        level: {
-            type: 'string',
-            enum: ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR']
-        }
-    },
-    required:['level'],
-    additionalProperties: false
-}
-
-const patchValidator = ajv.compile(patchSchema);
-
-function validatePatch(req, res, next) {
-    if(!patchValidator(req.body)) {
-        return next(createError(400, patchValidator.errors));
-    }
-    next();
-}
-
-function patchLogging(req, res, next) {
-
-
-
-}
-
 async function packLogs(outputZipFile) {
     /* zip the syslog and jager's log
      *
@@ -63,18 +38,94 @@ async function packLogs(outputZipFile) {
 
 
 
-async function getLogZip(req, res, next) {
+async function getLoggingBundle(req, res, next) {
     const zipFile = 'logs.zip'
     try {
         await packLogs(zipFile);
         res.status(200).sendFile(path.join(__dirname, zipFile));
-        //await unlink(path.join(__dirname, zipFile));
     } catch(err) {
         logger.error(err);
         return next(createError(500));
     }
+}
 
-    // TODO: delete logs.zip
+const ajv = new Ajv();
+const patchSchema = {
+    type: 'object',
+    properties: {
+        debugMode: {type: 'boolean'}
+    },
+    required:['debugMode'],
+    additionalProperties: false
+}
+const patchValidator = ajv.compile(patchSchema);
+
+function validatePatch(req, res, next) {
+    if(!patchValidator(req.body)) {
+        return next(createError(400, patchValidator.errors));
+    }
+    next();
+}
+
+
+async function patchLogging(req, res, next) {
+    // save new setting into DB
+    let setting = req.body;
+    try {
+        await sysModel.update({_id: 'logging'}, {content: setting});
+        if (req.body.debugMode) {
+            logger.changeLevel('debug');
+        }
+        else {
+            logger.changeLevel('info');
+        }
+        return res.status(200).send();
+    } catch (err) {
+        logger.error(err);
+        return next(createError(500));
+    }
+}
+
+
+async function getLogging(req, res, next) {
+    // get logging config from db
+    try {
+        let setting = await sysModel.findOne({'_id': 'logging'});
+        // response back
+        res.status(200).send(setting.content);
+    } catch (err) {
+        logger.error(err);
+        return next(createError(500));
+    }
+}
+
+
+async function setupLogger() {
+    // check if there exist logging config in DB
+    let setting = await sysModel.findOne({'_id': 'logging'});
+    if(!setting) {
+        // if not existed, create default network setting
+        const defaultSetting = {};
+        const content = {};
+        content.debugMode = false;
+
+        defaultSetting._id = 'logging';
+        defaultSetting.content = content;
+        try {
+            await sysModel.create(defaultSetting);
+        } catch (err) {
+            // TODO: logging
+            console.error(err)
+        }
+        setting = defaultSetting;
+    }
+    // setup debug level of the logger
+    if (setting.content.debugMode) {
+        logger.changeLevel('debug');
+    }
+    else {
+        logger.changeLevel('info');
+    }
 }
 
 /*
@@ -82,8 +133,12 @@ async function getLogZip(req, res, next) {
  */
 routesWithAuth(
     router,
-    ['get', '/logging', getLogZip],
-    ['patch', '/logging', validatePatch, patchLogging],
+    ['get', '/system/logging/bundle', getLoggingBundle],
+    ['get', '/system/logging', getLogging],
+    ['patch', '/system/logging', validatePatch, patchLogging],
 )
 
-module.exports = router
+module.exports = {
+    loggingRouter: router,
+    setupLogger
+}
