@@ -5,7 +5,7 @@ const cors = require('cors')
 
 const config = require('./config')
 const { users, createAdminUser } = require('./users')
-const analyzers = require('./analyzers')
+const { analyzers, restartAnalyzers} = require('./analyzers')
 const events = require('./events')
 const helpers = require('./helpers')
 
@@ -40,5 +40,11 @@ app.use((err, req, res, next) => {
 
 // Create admin user if it is not existed
 createAdminUser()
+
+setTimeout(() => {
+    // TODO: logging
+    console.log('restart all analyzers');
+    restartAnalyzers();
+}, config.services.api.restart_anals_delay);
 
 module.exports = app

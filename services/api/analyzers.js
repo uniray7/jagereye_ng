@@ -1,6 +1,9 @@
 const express = require('express')
 const { body, validationResult } = require('express-validator/check')
 const models = require('./database')
+const P = require('bluebird');
+const analModel = P.promisifyAll(models['analyzers']);
+
 const { createError } = require('./utils')
 const { routesWithAuth } = require('./auth')
 const NATS = require('nats')
@@ -444,6 +447,58 @@ function getAnalyzerPipeline(req, res, next) {
     })
 }
 
+
+async function restartAnalyzers() {
+    // get info of all analyzers
+    const analyzers = await analModel.find({});
+
+    forEach(analyzers, (analyzer) => {
+        let request = JSON.stringify({
+            command: 'CREATE',
+            params: {
+                id: analyzer._id,
+                name: analyzer.name,
+                source: analyzer.source,
+                pipelines: analyzer.pipelines
+            }
+        });
+
+        requestBackend(request, (reply, isLastReply, closeResponse) => {
+            if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+                // TODO: logging
+                console.log('Restart Timeout Error: creating analyzer' + analyzer._id);
+            }
+            if (reply['error']) {
+                // TODO: logging
+                console.log('Restart Error: creating analyzer' + analyzer._id + ': '+ JSON.stringify(reply['error']));
+                closeResponse()
+            }
+            // TODO: rollback saved record if any error occurred
+            closeResponse()
+
+            request = JSON.stringify({
+                command: 'START',
+                params: analyzer.id
+            });
+
+            requestBackend(request, (reply, isLastReply, closeResponse) => {
+                if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+                    // TODO: logging
+                    console.log('Restart Timeout Error: starting analyzer' + analyzer._id);
+                }
+                if (reply['error']) {
+                    // TODO: logging
+                    console.log('Restart Error: starting analyzer' + analyzer._id + ': '+ JSON.stringify(reply['error']));
+                    closeResponse()
+                }
+                // TODO: rollback saved record if any error occurred
+                closeResponse()
+            })
+        })
+    });
+}
+
+
 /*
  * Routing Table
  */
@@ -468,4 +523,7 @@ routesWithAuth(
     ['post', '/analyzer/:id/stop', stopAnalyzer],
 )
 
-module.exports = router
+module.exports = {
+    analyzers: router,
+    restartAnalyzers
+}

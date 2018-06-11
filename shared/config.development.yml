@@ -12,6 +12,7 @@ services:
         token:
             enabled: true
             secret: "jagereye_dev"
+        restart_anals_delay: 50000
     database:
         version: "mongo-3.6.0"
         db_name: jagereye-dev
