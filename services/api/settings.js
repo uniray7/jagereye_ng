@@ -63,23 +63,23 @@ function validateSettingPatch(req, res, next) {
 }
 
 async function patchSettings(req, res, next) {
-    let query = {}
-    let body = req.body
+    const query = {}
+    const body = req.body
 
-    let mode = body.mode;
-    let addr = body.address;
-    let netmask = body.netmask;
-    let gateway = body.gateway;
+    const mode = body.mode;
+    const addr = body.address;
+    const netmask = body.netmask;
+    const gateway = body.gateway;
 
-    let newSettings = {};
+    const newSettings = {};
     newSettings.mode = mode;
     newSettings.address = addr;
     newSettings.netmask = netmask;
     newSettings.gateway = gateway;
     newSettings.status = 'processing';
-    // First, insert record in db and response
+    // First, update record in db and response
     await settingsModel.updateAsync({'_id': 1}, newSettings, {'upsert': true});
-    res.status(200).send();
+    res.status(204).send();
     // start configure network interface
     try {
         await resetNetworkInterface(dataPortInterface, mode, addr, netmask, gateway);
@@ -87,15 +87,22 @@ async function patchSettings(req, res, next) {
         newSettings.status = 'done';
         // get the dhcp ip and update
         if (mode === 'dhcp') {
-            let dhcp_address = getInterfaceIp(dataPortInterface);
-            if (!dhcp_address) {
+            const dhcpAddress = getInterfaceIp(dataPortInterface);
+            if (!dhcpAddress) {
                 throw new ResetNetworkError('dhcp failed');
             }
-            newSettings.address = dhcp_address;
+            newSettings.address = 'None';
+            newSettings.netmask = 'None';
+            newSettings.gateway = 'None';
         }
         await settingsModel.updateAsync({'_id': 1}, newSettings, {'upsert': true});
     } catch (err) {
         newSettings.status = 'failed';
+        if (mode === 'dhcp') {
+            newSettings.address = 'None';
+            newSettings.netmask = 'None';
+            newSettings.gateway = 'None';
+        }
         await settingsModel.updateAsync({'_id': 1}, newSettings, {'upsert': true});
         // TODO: logging
         console.error(err);
@@ -104,7 +111,7 @@ async function patchSettings(req, res, next) {
 
 async function getSettings(req, res, next) {
     let result = await settingsModel.findOne({'_id': 1});
-    if(result.mode === 'dhcp') {
+    if (result.mode === 'dhcp') {
         result.netmask = undefined;
         result.gateway = undefined;
 
@@ -116,23 +123,25 @@ async function getSettings(req, res, next) {
         // on the other hand, whenever the port disconnected,
         // the dhcp ip will be invalid, then the status should be updated
 
-        let dhcp_address = getInterfaceIp(dataPortInterface);
-        if (dhcp_address) {
-            result.address = dhcp_address;
+        const dhcpAddress = getInterfaceIp(dataPortInterface);
+        if (dhcpAddress) {
+            result.address = dhcpAddress;
             result.status = 'done';
-            await settingsModel.updateAsync({'_id': 1}, result, {'upsert': true});
-        }
-        else {
+            await settingsModel.updateAsync({'_id': 1}, {status: 'done'});
+        } else {
             result.address = 'None';
-            result.status = 'failed';
+            if (result.status != 'processing') {
+                result.status = 'failed';
+                await settingsModel.updateAsync({'_id': 1}, {status: 'failed'});
+            }
         }
     }
     res.status(200).send(result);
 }
 
 async function createDefaultNetworkSetting() {
-    let result = await settingsModel.findOne({'_id': 1});
-    if(!result) {
+    const result = await settingsModel.findOne({'_id': 1});
+    if (!result) {
         // create default network setting
         let defaultSettings = {};
         defaultSettings.mode = 'dhcp';

@@ -7,11 +7,15 @@ WORKDIR ${HOME}
 # Install ffmpeg.
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg net-tools sudo isc-dhcp-client iproute && \
+        ffmpeg \
+        iproute \
+        isc-dhcp-client \
+        net-tools \
+        sudo && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*
 
-COPY --chown=root:root ./settings_utils/sudoers /etc/
+COPY ./settings_utils/sudoers /etc/
 USER jager
 
 # Create services structure

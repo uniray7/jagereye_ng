@@ -23,8 +23,7 @@ async function resetNetworkInterface(networkInterface, mode, address, netmask, g
     await execAsync(format('sudo ip addr flush dev %s', networkInterface), {timeout: shellTimeout});
     if(mode === 'static') {
         await execAsync(format('sudo ifconfig %s %s', networkInterface, address), {timeout: shellTimeout});
-    }
-    else if(mode === 'dhcp') {
+    } else if (mode === 'dhcp') {
         try {
             await execAsync(format('sudo dhclient %s', networkInterface), {timeout: shellTimeout});
         } catch(e){
@@ -36,9 +35,9 @@ async function resetNetworkInterface(networkInterface, mode, address, netmask, g
 }
 
 function getInterfaceIp(interfaceName) {
-    let interfaces = os.networkInterfaces();
+    const interfaces = os.networkInterfaces();
     try {
-        let ip = interfaces[interfaceName][0]['address'];
+        const ip = interfaces[interfaceName][0]['address'];
         return ip;
     } catch(e) {
         // TODO: logging
