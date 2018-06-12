@@ -3,6 +3,7 @@ const forEach = require('lodash/forEach');
 const includes = require('lodash/includes');
 const winston = require('winston');
 const { combine, printf } = winston.format;
+
 // Requiring 'winston-syslog' will expose
 // 'winston.transports.Syslog'
 require('winston-syslog').Syslog;
@@ -10,6 +11,9 @@ require('winston-syslog').Syslog;
 const config = require('./config').logging;
 
 class ChangeLogLevelError extends Error {
+    /**
+     * An error class will be throw when logger.changeLevel() failed
+     */
     constructor (message, status) {
         super(message);
         this.name = this.constructor.name;
@@ -20,8 +24,11 @@ class ChangeLogLevelError extends Error {
 };
 
 function addTraceStack(logger) {
-    /* Make logger can record stackTrace for ['emerg', 'alert', 'crit', 'error'] level
+    /**
+     * Make logger can record stackTrace for ['emerg', 'alert', 'crit', 'error'] level
+     * @param   {object} logger     the winston logger instance
      *
+     * @returns {object} the logger which can record trace stack
      */
 
     const logLevels = ['emerg', 'alert', 'crit', 'error'];
@@ -41,12 +48,19 @@ function addTraceStack(logger) {
 
 
 function createLogger() {
-    // set log tranports
+    /**
+     * Create winston logger with config
+     *
+     * @returns {object} the logger
+     */
+
     const transports = [];
     if (config.transports.stdout.default_enabled) {
+        // set stdout tranports
         transports.push(new (winston.transports.Console)());
     }
     if (config.transports.syslog.default_enabled) {
+        // set syslog tranports
         const options = {
             host: config.transports.syslog.host,
             port: config.transports.syslog.port,
@@ -67,15 +81,19 @@ function createLogger() {
         transports: transports,
         format: combine(logFormat)
     });
+
+    // make logger can record trace stack
     return addTraceStack(logger);
 }
 
 const logger = createLogger();
 logger.changeLevel = function(level) {
-    /*
+    /**
      * Change the level of the logger
-     * @param {string} level - Valid value:
+     * @param {string} level    Valid value:
      *      ['emerg', 'alert', 'crit', 'error', 'warning', 'notice', 'info', 'debug']
+     *
+     * @throws {ChangeLogLevelError}    throws when the parameter is invalid
      */
     const validLevels = Object.keys(winston.config.syslog.levels);
     if (!includes(validLevels, level)) {

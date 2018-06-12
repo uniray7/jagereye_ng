@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router()
 const path = require('path');
 const Ajv = require('ajv');
+const format = require('util').format;
 const P = require('bluebird');
 const execAsync = P.promisify(require('child_process').exec);
 const unlink = P.promisify(require('fs').unlink);
-const format = require('util').format;
-const logger = require('./logger');
 
+const logger = require('./logger');
 const models = require('./database');
 const sysModel = P.promisifyAll(models['system']);
 
@@ -16,6 +16,9 @@ const { routesWithAuth } = require('./auth')
 
 const packTimeout = 1000;
 class PackLogsError extends Error {
+/**
+ * An error class will be throw when packLogs() failed
+ */
     constructor (message, status) {
         super(message);
         this.name = this.constructor.name;
@@ -26,8 +29,10 @@ class PackLogsError extends Error {
 };
 
 async function packLogs(outputZipFile) {
-    /* zip the syslog and jager's log
+    /* Zip the syslog and jager's log
+     * @param   {string} outputZipFile  the path of output zip file
      *
+     * @throw   {PackLogsError}
      */
     try {
         await execAsync(format('sudo zip %s /var/jagerlog/syslog* /var/jagerlog/jager/*', outputZipFile), {timeout: packTimeout});
@@ -39,6 +44,9 @@ async function packLogs(outputZipFile) {
 
 
 async function getLoggingBundle(req, res, next) {
+    /**
+     * Middleware of GET /system/logging/bundle
+     */
     const zipFile = 'logs.zip'
     try {
         await packLogs(zipFile);
@@ -61,6 +69,10 @@ const patchSchema = {
 const patchValidator = ajv.compile(patchSchema);
 
 function validatePatch(req, res, next) {
+    /**
+     * Middleware to validate body for PATCH /system/logging
+     */
+
     if(!patchValidator(req.body)) {
         return next(createError(400, patchValidator.errors));
     }
@@ -69,6 +81,10 @@ function validatePatch(req, res, next) {
 
 
 async function patchLogging(req, res, next) {
+    /**
+     * Middleware of PATCH /system/logging
+     */
+
     // save new setting into DB
     let setting = req.body;
     try {
@@ -88,6 +104,10 @@ async function patchLogging(req, res, next) {
 
 
 async function getLogging(req, res, next) {
+    /**
+     * Middleware of GET /system/logging
+     */
+
     // get logging config from db
     try {
         let setting = await sysModel.findOne({'_id': 'logging'});
@@ -101,6 +121,10 @@ async function getLogging(req, res, next) {
 
 
 async function setupLogger() {
+    /**
+     * Setup the logger when API server start
+     */
+
     // check if there exist logging config in DB
     let setting = await sysModel.findOne({'_id': 'logging'});
     if(!setting) {
