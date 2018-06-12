@@ -69,8 +69,7 @@ make the user **'jager'** has previledge to execute the network setting cmds
 Cmnd_Alias FLUSH_IP = /sbin/ip addr flush dev enp*
 Cmnd_Alias IFCONFIG = /sbin/ifconfig enp* *
 Cmnd_Alias DHCLIENT = /sbin/dhclient enp*
-
-#at the end:
+# at the end:
 jager ALL=(ALL) NOPASSWD: FLUSH_IP, IFCONFIG, DHCLIENT
 ```
 
@@ -79,3 +78,13 @@ The service 'network-manager' on Ubuntu 16.04 will auto-config each network inte
 may be not the IP u set originally.
 ``` shell
 $ sudo systemctl disable network-manager.service
+```
+
+##### Make all network interface be static
+Due to the issue https://gitlab.com/jagereye/jagereye_ng/issues/52, we need to make all network interface be static as default
+1. edit /etc/network/interfaces, assume enp2s0 is data port
+```
+auto enp2s0
+ifcace enp2s0 inet static
+```
+
