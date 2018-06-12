@@ -8,6 +8,7 @@ const { users, createAdminUser } = require('./users')
 const { analyzers, restartAnalyzers} = require('./analyzers')
 const events = require('./events')
 const helpers = require('./helpers')
+const { settings, createDefaultNetworkSetting } = require('./settings')
 
 const app = express()
 
@@ -22,6 +23,7 @@ app.use(API_ENTRY, users)
 app.use(API_ENTRY, analyzers)
 app.use(API_ENTRY, events)
 app.use(API_ENTRY, helpers)
+app.use(API_ENTRY, settings)
 
 // Logging errors
 app.use((err, req, res, next) => {
@@ -40,6 +42,7 @@ app.use((err, req, res, next) => {
 
 // Create admin user if it is not existed
 createAdminUser()
+createDefaultNetworkSetting()
 
 setTimeout(() => {
     // TODO: logging
