@@ -7,6 +7,8 @@ services:
             - type: bind
               source: /var/log
               target: /var/jagerlog
+        cap_add:
+            - NET_ADMIN
         ports:
             client: "5000"
         base_url: "api/v1"
@@ -16,6 +18,12 @@ services:
         token:
             enabled: true
             secret: "jagereye_dev"
+        settings:
+            control_port:
+                device: "enp1s0"
+                static_ip: "192.168.20.1"
+            data_port:
+                device: "enp2s0"
     database:
         version: "mongo-3.6.0"
         db_name: jagereye-dev
@@ -57,9 +65,16 @@ services:
             # Repeat period of expiration function (in minutes).
             repeat_period_mins: 10
 apps:
+    base:
+        read_batch_size: 5
+        motion_threshold: 80
     intrusion_detection:
         version: "0.0.1"
         network_mode: host
+        detect_threshold: 0.25
+        video_format: "mp4"
+        fps: 15
+        history_len: 3
 logging:
     transports:
         stdout:

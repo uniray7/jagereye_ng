@@ -17,6 +17,10 @@ services:
               source: "{{volume.source}}"
               target: "{{volume.target}}"
             {%- endfor %}
+        cap_add:
+            {%- for cap in services.api.cap_add %}
+            - "{{cap}}"
+            {%- endfor %}
         ports:
             {%- for _, port in services.api.ports.items() %}
             - "{{port}}"

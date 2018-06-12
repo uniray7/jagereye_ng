@@ -4,12 +4,15 @@ const expressValidator = require('express-validator')
 const cors = require('cors')
 
 const config = require('./config')
+const logger = require('./logger');
+
 const { users, createAdminUser } = require('./users')
 const analyzers = require('./analyzers')
 const events = require('./events')
 const { loggingRouter, setupLogger } = require('./logging.js')
 const helpers = require('./helpers')
-const logger = require('./logger');
+const { settings, createDefaultNetworkSetting } = require('./settings')
+
 const app = express()
 
 app.use(cors({ optionsSuccessStatus: 200 /* some legacy browsers (IE11, various SmartTVs) choke on 204 */ }))
@@ -24,6 +27,7 @@ app.use(API_ENTRY, analyzers)
 app.use(API_ENTRY, events)
 app.use(API_ENTRY, loggingRouter)
 app.use(API_ENTRY, helpers)
+app.use(API_ENTRY, settings)
 
 // Logging errors
 app.use((err, req, res, next) => {
@@ -42,6 +46,7 @@ app.use((err, req, res, next) => {
 
 // Create admin user if it is not existed
 createAdminUser()
+createDefaultNetworkSetting()
 
 // Set up logger
 setupLogger()
