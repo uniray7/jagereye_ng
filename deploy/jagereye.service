@@ -1,0 +1,16 @@
+[Unit]
+Description=JagerEye Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=on-failure
+# We assume docker-compose.yml is in /usr/loca/jagereye.
+WorkingDirectory=/usr/local/jagereye
+# We assume docker-compose is in /usr/loca/bin.
+ExecStart=/usr/local/bin/docker-compose up
+ExecStop=/usr/local/bin/docker-compose down -v
+
+[Install]
+WantedBy=multi-user.target
