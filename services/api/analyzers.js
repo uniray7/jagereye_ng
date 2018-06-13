@@ -475,6 +475,7 @@ function getMetrics(req, res, next) {
                 return next(createError(500, reply['error']['message']))
             }
             closeResponse()
+            register.resetMetrics()
             result = list.map(x => {
                 let status = reply['result'][x['_id']]
                 g.labels(x['name']).set(analyzerStatus.indexOf(status))
