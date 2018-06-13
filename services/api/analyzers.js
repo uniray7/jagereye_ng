@@ -472,8 +472,8 @@ async function restartAnalyzers() {
         const analyzersStatus = (reply['result'] == undefined) ? {}: reply['result'];
 
         forEach(analyzers, (analyzer) => {
-            // filter analyzer which is running
-            if (analyzersStatus[analyzer._id] === 'running') {
+            // filter existed analyzers
+            if (analyzersStatus[analyzer._id]) {
                 return
             }
             // create the analyzer which is not running
