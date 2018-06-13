@@ -46,7 +46,7 @@ createDefaultNetworkSetting()
 
 setTimeout(() => {
     // TODO: logging
-    console.log('restart all analyzers');
+    console.log('restart analyzers');
     restartAnalyzers();
 }, config.services.api.restart_anals_delay);
 
