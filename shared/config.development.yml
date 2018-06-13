@@ -14,6 +14,7 @@ services:
         token:
             enabled: true
             secret: "jagereye_dev"
+        restart_anals_delay: 50000
         settings:
             control_port:
                 device: "enp1s0"
