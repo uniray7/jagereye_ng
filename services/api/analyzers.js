@@ -460,16 +460,15 @@ async function restartAnalyzers() {
     requestBackend(request, (reply, isLastReply, closeResponse) => {
         if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
             // TODO: logging
-            console.log('Restart Timeout Error: getting analyzers');
+            console.error('Restart Timeout Error: getting analyzers');
         }
         if (reply['error']) {
             // TODO: logging
-            console.log('Restart Timeout Error: getting analyzers: ' + JSON.stringify(reply['error']));
-            closeResponse()
+            console.error('Restart Timeout Error: getting analyzers: ' + JSON.stringify(reply['error']));
         }
         // TODO: rollback saved record if any error occurred
         closeResponse()
-        const analyzersStatus = (reply['result'] == undefined) ? {}: reply['result'];
+        const analyzersStatus = (reply['result'] === undefined) ? {} : reply['result'];
 
         forEach(analyzers, (analyzer) => {
             // filter existed analyzers
@@ -477,7 +476,7 @@ async function restartAnalyzers() {
                 return
             }
             // create the analyzer which is not running
-            let request = JSON.stringify({
+            request = JSON.stringify({
                 command: 'CREATE',
                 params: {
                     id: analyzer._id,
@@ -490,12 +489,11 @@ async function restartAnalyzers() {
             requestBackend(request, (reply, isLastReply, closeResponse) => {
                 if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
                     // TODO: logging
-                    console.log('Restart Timeout Error: creating analyzer' + analyzer._id);
+                    console.error('Restart Timeout Error: creating analyzer' + analyzer._id);
                 }
                 if (reply['error']) {
                     // TODO: logging
-                    console.log('Restart Error: creating analyzer' + analyzer._id + ': ' + JSON.stringify(reply['error']));
-                    closeResponse()
+                    console.error('Restart Error: creating analyzer' + analyzer._id + ': ' + JSON.stringify(reply['error']));
                 }
                 // TODO: rollback saved record if any error occurred
                 closeResponse()
@@ -509,12 +507,11 @@ async function restartAnalyzers() {
                     // start the analyzer which is not running
                     if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
                         // TODO: logging
-                        console.log('Restart Timeout Error: starting analyzer' + analyzer._id);
+                        console.error('Restart Timeout Error: starting analyzer' + analyzer._id);
                     }
                     if (reply['error']) {
                         // TODO: logging
-                        console.log('Restart Error: starting analyzer' + analyzer._id + ': '+ JSON.stringify(reply['error']));
-                        closeResponse()
+                        console.error('Restart Error: starting analyzer' + analyzer._id + ': '+ JSON.stringify(reply['error']));
                     }
                     // TODO: rollback saved record if any error occurred
                     closeResponse()

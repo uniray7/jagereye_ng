@@ -5,7 +5,7 @@ const cors = require('cors')
 
 const config = require('./config')
 const { users, createAdminUser } = require('./users')
-const { analyzers, restartAnalyzers} = require('./analyzers')
+const { analyzers, restartAnalyzers } = require('./analyzers')
 const events = require('./events')
 const helpers = require('./helpers')
 const { settings, createDefaultNetworkSetting } = require('./settings')
