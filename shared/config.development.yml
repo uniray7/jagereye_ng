@@ -3,6 +3,9 @@ services:
     api:
         version: "0.0.1"
         network_mode: host
+        logging_mount:
+            source: /var/log
+            target: /var/jagerlog
         cap_add:
             - NET_ADMIN
         ports:
@@ -83,3 +86,13 @@ apps:
         video_format: "mp4"
         fps: 15
         history_len: 3
+logging:
+    transports:
+        stdout:
+            default_enabled: true
+        syslog:
+            default_enabled: true
+            host: &syslog_server_host "localhost"
+            port: &syslog_server_port 514
+            facility: 'local1'
+            protocol: 'udp4'

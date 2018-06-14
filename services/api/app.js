@@ -4,10 +4,13 @@ const expressValidator = require('express-validator')
 const cors = require('cors')
 
 const config = require('./config')
+const logger = require('./logger');
+
 const { users, createAdminUser } = require('./users')
 const status = require('./status')
 const { analyzers, restartAnalyzers } = require('./analyzers')
 const events = require('./events')
+const { loggingRouter, setupLogger } = require('./logging.js')
 const helpers = require('./helpers')
 const { settings, createDefaultNetworkSetting } = require('./settings')
 
@@ -24,6 +27,7 @@ app.use(API_ENTRY, users)
 app.use(API_ENTRY, analyzers)
 app.use(API_ENTRY, status)
 app.use(API_ENTRY, events)
+app.use(API_ENTRY, loggingRouter)
 app.use(API_ENTRY, helpers)
 app.use(API_ENTRY, settings)
 
@@ -46,6 +50,11 @@ app.use((err, req, res, next) => {
 createAdminUser()
 createDefaultNetworkSetting()
 
+// Set up logger
+setupLogger()
+
+// Restart existed analyzers
+// TODO: the timeout is just a workaround, it should ask if AM is ready
 setTimeout(() => {
     // TODO: logging
     console.log('restart analyzers');

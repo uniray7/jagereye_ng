@@ -11,11 +11,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         iproute \
         isc-dhcp-client \
         net-tools \
-        sudo && \
+        python \
+        sudo \
+        zip && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*
 
-COPY ./settings_utils/sudoers /etc/
+COPY ./sudoers /etc/
+
 USER jager
 
 # Create services structure

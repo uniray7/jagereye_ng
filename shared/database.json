@@ -83,5 +83,15 @@
             "type": "object",
             "required": true
         }
+    },
+    "system": {
+        "_id": {
+            "auto": false,
+            "type": "string"
+        },
+        "content": {
+            "type" :"Object",
+            "required": true
+        }
     }
 }
