@@ -6,6 +6,8 @@ set -o errexit
 
 readonly VERSION="0.0.1"
 readonly BUILD_FOLDER="${JAGERROOT}/build"
+readonly SYSTEMD_UNIT_DIR="/lib/systemd/system"
+readonly DEPLOY_DIR="/usr/local/jagereye"
 
 jager::main_usage() {
     echo "
@@ -20,6 +22,7 @@ Options:
 
 Commands:
     build           Build docker images
+    deploy          Deploy JagerEye to system
     info            Display system-wide information
     install         Install framework to host without building docker images
     start           Start services/applications docker containers
@@ -180,6 +183,54 @@ jager::build_servicebase() {
     echo "Run 'docker build -t jagereye/nodejs -f services/Dockerfile.nodejs .'"
 }
 
+jager::deploy() {
+    local usage="
+USAGE: jager deploy [OPTIONS]
+
+Deploy JagerEye related files to system.
+
+Options:
+    -h, --help      Show this screen
+    "
+    if (( $# > 0 )); then
+        case "${1}" in
+            -h|--help)
+                echo "${usage}"
+                exit 0
+                ;;
+            *)
+                jager::error "Invalid option: ${1}
+                ${usage}"
+                ;;
+        esac
+    fi
+
+    # Generate the docker-compose for starting.
+    jager::prepare_build
+    python3 ${JAGERROOT}/deploy/docker_gen.py --workdir=${BUILD_FOLDER} all
+
+    # Copy files to deployment directory.
+    mkdir -p ${DEPLOY_DIR}
+    echo "Run 'cp ${BUILD_FOLDER}/docker-compose.yml ${DEPLOY_DIR}'"
+    cp ${BUILD_FOLDER}/docker-compose.yml ${DEPLOY_DIR}
+
+    # Copy systemd unit file.
+    echo "Run 'cp ${JAGERROOT}/deploy/jagereye.service ${SYSTEMD_UNIT_DIR}'"
+    cp ${JAGERROOT}/deploy/jagereye.service ${SYSTEMD_UNIT_DIR}
+
+    # Reload systemd manager configuration.
+    echo "Run 'systemctl daemon-reload'"
+    systemctl daemon-reload
+
+    # Enable JagerEye service, make JagerEye automatically starts when system
+    # boots up.
+    echo "Run 'systemctl enable jagereye'"
+    systemctl enable jagereye
+
+    # The build folder will be unused, clean it.
+    rm -rf ${BUILD_FOLDER}
+}
+
 jager::start() {
     local usage="
 USAGE: jager start TARGET [OPTIONS]
@@ -316,6 +367,9 @@ shift
 case "${opt}" in
     build)
         jager::build "${@}"
+        ;;
+    deploy)
+        jager::deploy "${@}"
         ;;
     start)
         jager::start "${@}"

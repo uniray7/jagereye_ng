@@ -1,6 +1,9 @@
 const express = require('express')
 const { body, validationResult } = require('express-validator/check')
 const models = require('./database')
+const P = require('bluebird');
+const analModel = P.promisifyAll(models['analyzers']);
+
 const { createError } = require('./utils')
 const { routesWithAuth } = require('./auth')
 const NATS = require('nats')
@@ -489,6 +492,81 @@ function getMetrics(req, res, next) {
     })
 }
 
+async function restartAnalyzers() {
+    // get info of all analyzers
+    const analyzers = await analModel.find({});
+    if (analyzers.length === 0) {return;}
+
+    // check if the analyzer info in DB are correctly active in analyzer manager
+    let request = JSON.stringify({
+        command: 'READ',
+        params: analyzers.map(x => x['_id'])
+    })
+    requestBackend(request, (reply, isLastReply, closeResponse) => {
+        if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+            // TODO: logging
+            console.error('Restart Timeout Error: getting analyzers');
+        }
+        if (reply['error']) {
+            // TODO: logging
+            console.error('Restart Timeout Error: getting analyzers: ' + JSON.stringify(reply['error']));
+        }
+        // TODO: rollback saved record if any error occurred
+        closeResponse()
+        const analyzersStatus = (reply['result'] === undefined) ? {} : reply['result'];
+
+        forEach(analyzers, (analyzer) => {
+            // filter existed analyzers
+            if (analyzersStatus[analyzer._id]) {
+                return
+            }
+            // create the analyzer which is not running
+            request = JSON.stringify({
+                command: 'CREATE',
+                params: {
+                    id: analyzer._id,
+                    name: analyzer.name,
+                    source: analyzer.source,
+                    pipelines: analyzer.pipelines
+                }
+            });
+
+            requestBackend(request, (reply, isLastReply, closeResponse) => {
+                if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+                    // TODO: logging
+                    console.error('Restart Timeout Error: creating analyzer' + analyzer._id);
+                }
+                if (reply['error']) {
+                    // TODO: logging
+                    console.error('Restart Error: creating analyzer' + analyzer._id + ': ' + JSON.stringify(reply['error']));
+                }
+                // TODO: rollback saved record if any error occurred
+                closeResponse()
+
+                request = JSON.stringify({
+                    command: 'START',
+                    params: analyzer.id
+                });
+
+                requestBackend(request, (reply, isLastReply, closeResponse) => {
+                    // start the analyzer which is not running
+                    if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+                        // TODO: logging
+                        console.error('Restart Timeout Error: starting analyzer' + analyzer._id);
+                    }
+                    if (reply['error']) {
+                        // TODO: logging
+                        console.error('Restart Error: starting analyzer' + analyzer._id + ': '+ JSON.stringify(reply['error']));
+                    }
+                    // TODO: rollback saved record if any error occurred
+                    closeResponse()
+                }) // start analyzers
+            }) // create analyzers
+        }); //forEach
+    }) // get analyzers' status
+}
+
+
 /*
  * Routing Table
  */
@@ -517,4 +595,7 @@ routesWithAuth(
     ['get', '/metrics', getMetrics]
 )
 
-module.exports = router
+module.exports = {
+    analyzers: router,
+    restartAnalyzers
+}

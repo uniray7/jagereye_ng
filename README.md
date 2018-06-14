@@ -60,6 +60,17 @@ jager build all
 jager start all
 ```
 
+* Alternatively, we can also deploy JagerEye as a [systemd](https://en.wikipedia.org/wiki/Systemd) service.
+```bash
+# Deploy JagerEye as a systemd service. This command will also make
+# JagerEye starts automatically when system boots up. If you need to
+# disable the startup mechanism, please run
+# 'sudo systemctl disable jagereye'.
+sudo -E env "PATH=$PATH" jager deploy
+# Start running JagerEye service.
+sudo systemctl start jagereye
+```
+
 ## Contributing
 
 ### Coding Style Guildline
