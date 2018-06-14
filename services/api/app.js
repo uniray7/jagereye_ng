@@ -7,7 +7,7 @@ const config = require('./config')
 const logger = require('./logger');
 
 const { users, createAdminUser } = require('./users')
-const analyzers = require('./analyzers')
+const { analyzers, restartAnalyzers } = require('./analyzers')
 const events = require('./events')
 const { loggingRouter, setupLogger } = require('./logging.js')
 const helpers = require('./helpers')
@@ -51,5 +51,12 @@ createDefaultNetworkSetting()
 // Set up logger
 setupLogger()
 
+// Restart existed analyzers
+// TODO: the timeout is just a workaround, it should ask if AM is ready
+setTimeout(() => {
+    // TODO: logging
+    console.log('restart analyzers');
+    restartAnalyzers();
+}, config.services.api.restart_anals_delay);
 
 module.exports = app
