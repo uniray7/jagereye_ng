@@ -7,6 +7,7 @@ const P = require('bluebird');
 const execAsync = P.promisify(require('child_process').exec);
 const unlink = P.promisify(require('fs').unlink);
 
+const config = require('./config.js');
 const logger = require('./logger');
 const models = require('./database');
 const sysModel = P.promisifyAll(models['system']);
@@ -35,13 +36,13 @@ async function packLogs(outputZipFile) {
      * @throw   {PackLogsError}
      */
     try {
-        await execAsync(format('sudo zip %s /var/jagerlog/syslog* /var/jagerlog/jager/*', outputZipFile), {timeout: packTimeout});
+        const syslogPath = path.join(config.services.api.logging_mount.target, 'syslog*');
+        const jagerlogPath = path.join(config.services.api.logging_mount.target, 'jager/*');
+        await execAsync(format('sudo zip %s %s %s', outputZipFile, syslogPath, jagerlogPath), {timeout: packTimeout});
     } catch(err) {
         throw new PackLogsError(err);
     }
 }
-
-
 
 async function getLoggingBundle(req, res, next) {
     /**
@@ -126,29 +127,34 @@ async function setupLogger() {
      */
 
     // check if there exist logging config in DB
-    let setting = await sysModel.findOne({'_id': 'logging'});
-    if(!setting) {
-        // if not existed, create default network setting
-        const defaultSetting = {};
-        const content = {};
-        content.debugMode = false;
+    try {
+        let setting = await sysModel.findOne({'_id': 'logging'});
+        if(!setting) {
+            // if not existed, create default network setting
+            const defaultSetting = {};
+            const content = {};
+            content.debugMode = false;
 
-        defaultSetting._id = 'logging';
-        defaultSetting.content = content;
-        try {
-            await sysModel.create(defaultSetting);
-        } catch (err) {
-            // TODO: logging
-            console.error(err)
+            defaultSetting._id = 'logging';
+            defaultSetting.content = content;
+            try {
+                await sysModel.create(defaultSetting);
+            } catch (err) {
+                // TODO: logging
+                console.error(err)
+            }
+            setting = defaultSetting;
         }
-        setting = defaultSetting;
-    }
-    // setup debug level of the logger
-    if (setting.content.debugMode) {
-        logger.changeLevel('debug');
-    }
-    else {
-        logger.changeLevel('info');
+        // setup debug level of the logger
+        if (setting.content.debugMode) {
+            logger.changeLevel('debug');
+        }
+        else {
+            logger.changeLevel('info');
+        }
+    } catch (err) {
+        // TODO: logging
+        console.error(err)
     }
 }
 

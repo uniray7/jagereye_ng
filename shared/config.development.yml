@@ -3,10 +3,9 @@ services:
     api:
         version: "0.0.1"
         network_mode: host
-        volumes:
-            - type: bind
-              source: /var/log
-              target: /var/jagerlog
+        logging_mount:
+            source: /var/log
+            target: /var/jagerlog
         cap_add:
             - NET_ADMIN
         ports:

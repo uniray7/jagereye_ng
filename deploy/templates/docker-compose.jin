@@ -12,11 +12,9 @@ services:
         image: "jagereye/api:{{services.api.version}}"
         network_mode: "{{services.api.network_mode}}"
         volumes:
-            {%- for volume in services.api.volumes %}
-            - type: "{{volume.type}}"
-              source: "{{volume.source}}"
-              target: "{{volume.target}}"
-            {%- endfor %}
+            - type: "bind"
+              source: "{{services.api.logging_mount.source}}"
+              target: "{{services.api.logging_mount.target}}"
         cap_add:
             {%- for cap in services.api.cap_add %}
             - "{{cap}}"
