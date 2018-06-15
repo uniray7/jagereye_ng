@@ -26,4 +26,4 @@ RUN chmod +x /start.sh
 EXPOSE 7777
 
 ENTRYPOINT ["/usr/local/bin/bash"]
-CMD ["-c", "/start.sh"]
+CMD ["-c", "/start.sh 7777"]

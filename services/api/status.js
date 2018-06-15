@@ -5,16 +5,14 @@ const { createError } = require('./utils')
 const request = require('request-promise-native')
 const config = require('./config')
 const models = require('./database')
-const assert = require('assert');
+const assert = require('assert')
+const { analyzerStatus } = require('./constants')
 
 const MAX_ANALYZERS = 8  // TODO: should get from config file
 
 const PROMETHEUS_URL = config.services.prometheus.params.endpoint_url + '/' +
                        config.services.prometheus.params.api_version
 const PROMETHEUS_PREFIX = PROMETHEUS_URL + '/query?query='
-
-// status mapping
-const analyzerStatus = ['created','starting','running','source_down','stopped']
 
 var memTotal = 0, systemDiskSize = 0, dataDiskSize = 0
 
@@ -58,6 +56,13 @@ async function getStatus(req, res, next) {
             used: getPrometheusReturnValue(cpu).toFixed(2),
             total: '100'
         })
+    } else {
+        result.usage.push({
+            name: 'cpu',
+            unit: '%',
+            used: 'NaN',
+            total: 'NaN'
+        })
     }
     // memory
     if (memAvail['status'] === 'success') {
@@ -68,6 +73,13 @@ async function getStatus(req, res, next) {
             unit: 'GB',
             used: memUsed.toFixed(2),
             total: memTotal.toFixed(2)
+        })
+    } else {
+        result.usage.push({
+            name: 'memory',
+            unit: 'GB',
+            used: 'NaN',
+            total: 'NaN'
         })
     }
     // systemDisk
@@ -80,6 +92,13 @@ async function getStatus(req, res, next) {
             used: systemDiskUsed.toFixed(2),
             total: systemDiskSize.toFixed(2)
         })
+    } else {
+        result.usage.push({
+            name: 'systemDiskCapacity',
+            unit: 'GB',
+            used: 'NaN',
+            total: 'NaN'
+        })
     }
     // dataDisk
     if (dataDiskFree['status'] === 'success') {
@@ -90,6 +109,13 @@ async function getStatus(req, res, next) {
             unit: 'GB',
             used: dataDiskUsed.toFixed(2),
             total: dataDiskSize.toFixed(2)
+        })
+    } else {
+        result.usage.push({
+            name: 'dataDiskCapacity',
+            unit: 'GB',
+            used: 'NaN',
+            total: 'NaN'
         })
     }
     // camera
@@ -121,24 +147,20 @@ async function getStatus(req, res, next) {
                 status: targets[i].health
             })
         }
+    } else {
+        result.services = 'NaN' 
     }
 
     return res.send(result)
 }
 
 function getPrometheusReturnValue(ret) {
-    if(ret.hasOwnProperty('data')) {
-        if(ret.data.hasOwnProperty('result')) {
-            if(Array.isArray(ret.data.result) && ret.data.result.length > 0) {
-                if(ret.data.result[0].hasOwnProperty('value')) {
-                    if(Array.isArray(ret.data.result[0].value) && ret.data.result[0].value.length === 2) {
-                        return parseFloat(ret.data.result[0].value[1])
-                    }
-                }
-            }
-        }
+    try {
+        const result = parseFloat(ret.data.result[0].value[1])
+        return result
+    } catch(e) {
+        return 0
     }
-    return 0
 }
 
 /*
@@ -146,7 +168,7 @@ function getPrometheusReturnValue(ret) {
  */
 routesWithAuth(
     router,
-    ['get', '/status', getStatus],
+    ['get', '/system/status', getStatus],
 )
 
 module.exports = router
