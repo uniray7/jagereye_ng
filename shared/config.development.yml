@@ -26,6 +26,9 @@ services:
                 device: "enp2s0"
     database:
         version: "mongo-3.6.0"
+        mount:
+            source: '/data/jagereye/database'
+            enabled: true
         db_name: jagereye-dev
         network_mode: host
         ports:
@@ -38,6 +41,9 @@ services:
             monitor: "8222"
     obj_storage:
         version: "minio-RELEASE.2018-04-04T05-20-54Z"
+        mount:
+            source: '/data/jagereye/object_store'
+            enabled: true
         network_mode: host
         ports:
             client: "9000"
