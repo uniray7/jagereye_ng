@@ -19,6 +19,20 @@ const MAX_ANALYZERS = 8
 const NUM_OF_BRAINS = 1
 const DEFAULT_REQUEST_TIMEOUT = 15000
 
+//  setup for prometheus
+const prometheusClient = require('prom-client')
+const { analyzerStatus } = require('./constants')
+const register = prometheusClient.register
+const Gauge = prometheusClient.Gauge
+const g = new Gauge({
+    name: 'analyzer_status',
+    help: 'Analyzer status',
+    labelNames: ['analyzer']
+});
+// When scraping metrics, prometheus needs at least some value for exporter status
+// to be UP, here we set the Gauge to 1
+g.set(1)
+
 /*
  * Projections
  */
@@ -447,6 +461,45 @@ function getAnalyzerPipeline(req, res, next) {
     })
 }
 
+function getMetrics(req, res, next) {
+    models['analyzers'].find({}, getConfProjection, (err, list) => {
+        if (err) { return next(createError(500, null, err)) }
+        if (list.length === 0) {
+            // if no analyzers in DB, simply return for heartheat
+            register.resetMetrics()
+            res.set('Content-Type', register.contentType);
+            res.status(200).send(register.metrics())
+            return
+        }
+        const request = JSON.stringify({
+            command: 'READ',
+            params: list.map(x => x['_id'])
+        })
+        requestBackend(request, (reply, isLastReply, closeResponse) => {
+            if (reply['code'] && reply['code'] === NATS.REQ_TIMEOUT) {
+                console.error(reply['error']) // TODO: replace console.error with logger
+            }
+            if (reply['error']) {
+                console.error(reply['error']) // TODO: replace console.error with logger
+            }
+            closeResponse()
+            register.resetMetrics()
+            result = list.map(x => {
+                let status = 'unknown'
+                if(reply['result'] && reply['result'][x['_id']]) {
+                    status = reply['result'][x['_id']]
+                }
+                g.labels(x['name']).set(analyzerStatus.indexOf(status))
+                return
+            })
+
+            res.set('Content-Type', register.contentType);
+            res.status(200).send(register.metrics())
+            return
+        })
+    })
+}
+
 async function restartAnalyzers() {
     // get info of all analyzers
     const analyzers = await analModel.find({});
@@ -545,6 +598,9 @@ routesWithAuth(
     ['post', '/analyzer/:id/start', startAnalyzer],
     ['post', '/analyzer/:id/stop', stopAnalyzer],
 )
+
+// TODO: internal communication should go through internal network(i.e. bridge)
+router.get('/metrics', getMetrics)
 
 module.exports = {
     analyzers: router,

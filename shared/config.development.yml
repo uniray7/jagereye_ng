@@ -33,14 +33,16 @@ services:
         network_mode: host
         ports:
             client: "27017"
+            prometheus: "9001"
     messaging:
         version: "nats-1.0.4"
         network_mode: host
         ports:
             client: "4222"
             monitor: "8222"
+            prometheus: "7777"
     obj_storage:
-        version: "minio-RELEASE.2018-04-04T05-20-54Z"
+        version: "minio-RELEASE.2018-05-11T00-29-24Z"
         mount:
             source: '/data/jagereye/object_store'
             enabled: true
@@ -57,6 +59,15 @@ services:
         credentials:
             access_key: 'jagereye'
             secret_key: 'jagereye'
+    prometheus:
+        version: "prometheus-v2.2.1"
+        network_mode: host
+        ports:
+            client: "9090"
+        params:
+            endpoint_url: 'http://localhost:9090'
+            api_version: 'api/v1'
+
     expiration:
         version: "0.0.1"
         network_mode: host

@@ -7,6 +7,7 @@ const config = require('./config')
 const logger = require('./logger');
 
 const { users, createAdminUser } = require('./users')
+const status = require('./status')
 const { analyzers, restartAnalyzers } = require('./analyzers')
 const events = require('./events')
 const { loggingRouter, setupLogger } = require('./logging.js')
@@ -24,6 +25,7 @@ app.use(expressValidator())
 const API_ENTRY = `/${config.services.api.base_url}`
 app.use(API_ENTRY, users)
 app.use(API_ENTRY, analyzers)
+app.use(API_ENTRY, status)
 app.use(API_ENTRY, events)
 app.use(API_ENTRY, loggingRouter)
 app.use(API_ENTRY, helpers)
