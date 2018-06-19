@@ -297,7 +297,11 @@ class VideoStreamWriter(object):
 
         _, ext = os.path.splitext(filename)
         if ext == ".mp4":
-            filename = ('appsrc ! autovideoconvert ! x264enc ! matroskamux !'
+            # Use I420, which is the most common YUV420p foramt, to make the
+            # generated videos widely supported.
+            # (If we don't specify, the output format may be YUV444p, which is
+            #  not supported by some browsers on mobile phones)
+            filename = ('appsrc ! videoconvert ! video/x-raw,format=(string)I420 ! x264enc ! mp4mux !'
                          ' filesink location={}'.format(filename))
             fourcc = 0
         else:
