@@ -8,20 +8,8 @@ const { createError } = require('./utils')
 const { routesWithAuth } = require('./auth')
 const objectStore = require('./objectStore');
 
-const mongoose = require('mongoose')
-const ObjectId = mongoose.Types.ObjectId;
-const Schema = mongoose.Schema
-const conn = mongoose.createConnection('mongodb://localhost:27017/jager_test')
-
-const eventSchema = Schema({
-    timestamp: Number,
-    analyzerId: String,
-    content: Object,
-    date: Date,
-    type: String
-}, { collection: 'events' })
-
-const eventModel = conn.model('events', eventSchema)
+const models = require('./database');
+const eventModel = models['events'];
 
 const ajv = new Ajv();
 const eventQuerySchema = {
